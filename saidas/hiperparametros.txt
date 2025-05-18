@@ -1,0 +1,5 @@
+Tamanho da camada de entrada: 120
+Tamanho da camada oculta: 32
+Tamanho da camada de saída: 26
+Taxa de aprendizado: 0.05
+Épocas: 50

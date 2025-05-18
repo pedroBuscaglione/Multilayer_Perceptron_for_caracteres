@@ -1,0 +1,1 @@
+Média de acurácia (validação cruzada): 0.8023

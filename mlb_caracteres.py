@@ -61,7 +61,9 @@ def one_hot_encode_label(label):
     return vec
 
 def relu(x): return [max(0, v) for v in x]
+
 def relu_derivative(x): return [1 if v > 0 else 0 for v in x]
+
 def softmax(z):
     max_z = max(z)
     exps = [math.exp(i - max_z) for i in z]
@@ -114,17 +116,34 @@ def train(X, Y, hidden_size, epochs, lr, W1, b1, W2, b2):
     return W1, b1, W2, b2, erros
 
 def evaluate(X, Y, W1, b1, W2, b2):
-    correct = 0
+    y_true = []
+    y_pred = []
     for x, label in zip(X, Y):
-        _, _, _, y_pred = forward_pass(x, W1, b1, W2, b2)
-        pred_index = y_pred.index(max(y_pred))
-        true_index = ord(label.upper()) - ord('A')
-        if pred_index == true_index:
-            correct += 1
-    acc = correct / len(X)
-    print(f"Final Accuracy: {acc:.4f}")
+        _, _, _, a2 = forward_pass(x, W1, b1, W2, b2)
+        pred_idx = a2.index(max(a2))
+        y_true.append(label)
+        y_pred.append(chr(pred_idx + ord('A')))
+    correct = sum([yt == yp for yt, yp in zip(y_true, y_pred)])
+    acc = correct / len(Y)
+    print(f"Acurácia final: {acc:.4f}")
+    print("\nMatriz de Confusão:")
+    labels = [chr(i) for i in range(ord('A'), ord('Z')+1)]
+    matrix = [[0 for _ in labels] for _ in labels]
+    label_index = {c: i for i, c in enumerate(labels)}
+    for yt, yp in zip(y_true, y_pred):
+        i = label_index[yt]
+        j = label_index[yp]
+        matrix[i][j] += 1
+    print("      " + " ".join(labels))
+    for i, row in enumerate(matrix):
+        print(f"{labels[i]}: " + " ".join(f"{val:2d}" for val in row))
     return acc
 
+def plot_erro_por_epoca(erros):
+    with open("erro_por_epoca.txt", "w") as f:
+        for i, erro in enumerate(erros):
+            f.write(f"Epoch {i+1}: {erro:.4f}\n")
+            
 def k_fold_cross_validation(X, Y, k=5, patience=5, max_epochs=50, hidden_size=32, learning_rate=0.05):
     data = list(zip(X, Y))
     random.shuffle(data)
