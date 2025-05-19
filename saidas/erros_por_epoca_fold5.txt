@@ -1,7 +1,0 @@
-Epoch 1: Erro = 0.5825
-Epoch 2: Erro = 0.3120
-Epoch 3: Erro = 0.2102
-Epoch 4: Erro = 0.2422
-Epoch 5: Erro = 0.2121
-Epoch 6: Erro = 0.1819
-Epoch 7: Erro = 0.1631

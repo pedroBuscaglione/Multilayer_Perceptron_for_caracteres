@@ -1,4 +1,4 @@
-# Pedro Serrano Buscaglione n° 14603652
+# Pedro Serrano Buscaglione n°-14603652
 
 import random
 import math
@@ -113,6 +113,7 @@ def train(X, Y, hidden_size, epochs, lr, W1, b1, W2, b2):
         acc = correct / len(X)
         erros.append(1 - acc)
         print(f"Epoch {epoch+1}, Accuracy: {acc:.4f}")
+    print(f"Acurácia final: {acc:.4f}")
     return W1, b1, W2, b2, erros
 
 def evaluate(X, Y, W1, b1, W2, b2):
@@ -125,7 +126,6 @@ def evaluate(X, Y, W1, b1, W2, b2):
         y_pred.append(chr(pred_idx + ord('A')))
     correct = sum([yt == yp for yt, yp in zip(y_true, y_pred)])
     acc = correct / len(Y)
-    print(f"Acurácia final: {acc:.4f}")
     print("\nMatriz de Confusão:")
     labels = [chr(i) for i in range(ord('A'), ord('Z')+1)]
     matrix = [[0 for _ in labels] for _ in labels]
@@ -139,6 +139,39 @@ def evaluate(X, Y, W1, b1, W2, b2):
         print(f"{labels[i]}: " + " ".join(f"{val:2d}" for val in row))
     return acc
 
+def evaluate_fold(X, Y, W1, b1, W2, b2):
+    correct = 0
+    confusion_matrix = [[0 for _ in range(26)] for _ in range(26)]
+
+    for x, y_true in zip(X, Y):
+        # Forward pass
+        z1 = [sum(x[i] * W1[i][j] for i in range(len(x))) + b1[j] for j in range(len(b1))]
+        a1 = [1 / (1 + 2.718281828459045 ** -z) for z in z1]  # sigmoid
+
+        z2 = [sum(a1[i] * W2[i][j] for i in range(len(a1))) + b2[j] for j in range(len(b2))]
+        exp_z2 = [2.718281828459045 ** z for z in z2]
+        sum_exp = sum(exp_z2)
+        a2 = [v / sum_exp for v in exp_z2]  # softmax
+
+        # Previsão
+        y_pred = a2.index(max(a2))
+
+        if y_pred == y_true:
+            correct += 1
+        confusion_matrix[y_true][y_pred] += 1
+
+    accuracy = correct / len(X)
+    return accuracy, confusion_matrix
+
+def print_confusion_matrix(matrix):
+    print("\nMatriz de Confusão:")
+    header = "     " + " ".join(chr(i + ord('A')) for i in range(26))
+    print(header)
+    for i, row in enumerate(matrix):
+        row_str = f"{chr(i + ord('A'))}: " + " ".join(f"{v:2d}" for v in row)
+        print(row_str)
+
+
 def plot_erro_por_epoca(erros):
     with open("erro_por_epoca.txt", "w") as f:
         for i, erro in enumerate(erros):
@@ -150,6 +183,7 @@ def k_fold_cross_validation(X, Y, k=5, patience=5, max_epochs=50, hidden_size=32
     X, Y = zip(*data)
     fold_size = len(X) // k
     total_accuracy = 0
+
     for fold in range(k):
         print(f"\n=== Fold {fold + 1}/{k} ===")
         start = fold * fold_size
@@ -158,17 +192,21 @@ def k_fold_cross_validation(X, Y, k=5, patience=5, max_epochs=50, hidden_size=32
         Y_val = Y[start:end]
         X_train = X[:start] + X[end:]
         Y_train = Y[:start] + Y[end:]
+
         W1, b1, W2, b2 = initialize_weights(len(X[0]), hidden_size, 26)
         salvar_pesos(W1, b1, W2, b2, f"pesos_iniciais_fold{fold+1}.txt")
+        
         best_acc = 0
         no_improvement = 0
         best_weights = None
         erros_fold = []
+
         for epoch in range(max_epochs):
             W1, b1, W2, b2, erros = train(X_train, Y_train, hidden_size, 1, learning_rate, W1, b1, W2, b2)
-            acc = evaluate(X_val, Y_val, W1, b1, W2, b2)
+            acc, _ = evaluate_fold(X_val, Y_val, W1, b1, W2, b2)
             erros_fold.extend(erros)
             print(f"Epoch {epoch + 1} | Val Accuracy: {acc:.4f}")
+
             if acc > best_acc:
                 best_acc = acc
                 best_weights = (W1, b1, W2, b2)
@@ -178,13 +216,21 @@ def k_fold_cross_validation(X, Y, k=5, patience=5, max_epochs=50, hidden_size=32
                 if no_improvement >= patience:
                     print("⏹️ Parada antecipada ativada.")
                     break
+
         W1, b1, W2, b2 = best_weights
+        acc, conf_matrix = evaluate_fold(X_val, Y_val, W1, b1, W2, b2)
+
         salvar_pesos(W1, b1, W2, b2, f"pesos_finais_fold{fold+1}.txt")
         salvar_erros_por_epoca(erros_fold, f"erros_por_epoca_fold{fold+1}.txt")
         salvar_saidas(X_val, Y_val, W1, b1, W2, b2, f"saidas_validacao_fold{fold+1}.txt")
-        total_accuracy += best_acc
-        print(f"Melhor acurácia neste fold: {best_acc:.4f}")
+
+        print(f"Acurácia final: {acc:.4f}")
+        print_confusion_matrix(conf_matrix)
+
+        total_accuracy += acc
+
     media = total_accuracy / k
+    print(f"\n📊 Média de acurácia (validação cruzada): {media:.4f}")
     with open("media_accuracies.txt", "w") as f:
         f.write(f"Média de acurácia (validação cruzada): {media:.4f}\n")
 
